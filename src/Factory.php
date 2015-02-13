@@ -11,12 +11,17 @@ use React\Socket\Connection;
 
 class Factory
 {
+    /**
+     * Protocol : defaults to 'tcp', for secure connection use 'tls'
+     * @param $defaultOptions['protocol'] 'tcp' | 'tls' defines the protocol
+     */
     private $defaultOptions = array(
         'host'      => '127.0.0.1',
         'port'      => 61613,
         'vhost'     => '/',
         'login'     => 'guest',
         'passcode'  => 'guest',
+        'protocol'  => 'tcp'
     );
 
     private $loop;
@@ -55,7 +60,7 @@ class Factory
 
     public function createConnection($options)
     {
-        $address = 'tcp://'.$options['host'].':'.$options['port'];
+        $address = $options['protocol'] . '://'.$options['host'].':'.$options['port'];
 
         if (false === $fd = @stream_socket_client($address, $errno, $errstr)) {
             $message = "Could not bind to $address: $errstr";
