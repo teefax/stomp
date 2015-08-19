@@ -3,6 +3,7 @@
 namespace React\Stomp;
 
 use Evenement\EventEmitter;
+use React\EventLoop\Timer\TimerInterface;
 use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
 use React\Stomp\Client\IncomingPackageProcessor;
@@ -12,8 +13,10 @@ use React\Stomp\Client\Command\CommandInterface;
 use React\Stomp\Client\Command\CloseCommand;
 use React\Stomp\Client\Command\ConnectionEstablishedCommand;
 use React\Stomp\Client\Command\NullCommand;
+use React\Stomp\Exception\InvalidHeartbeatException;
 use React\Stomp\Exception\ProcessingException;
 use React\Stomp\Exception\ConnectionException;
+use React\Stomp\Client\HeartBeat;
 use React\Stomp\Io\InputStreamInterface;
 use React\Stomp\Io\OutputStreamInterface;
 use React\Stomp\Protocol\Frame;
@@ -39,16 +42,23 @@ class Client extends EventEmitter
     /** @var PromiseInterface */
     private $connectPromise;
 
+    /** @var  State */
+    private $state;
+
+    /** @var  TimerInterface */
+    private $heartInTimer, $heartOutTimer;
+
     public function __construct(LoopInterface $loop, InputStreamInterface $input, OutputStreamInterface $output, array $options)
     {
         $this->loop = $loop;
-        $state = new State();
-        $this->packageProcessor = new IncomingPackageProcessor($state);
-        $this->packageCreator = new OutgoingPackageCreator($state);
+        $this->state = new State();
+        $this->packageProcessor = new IncomingPackageProcessor($this->state);
+        $this->packageCreator = new OutgoingPackageCreator($this->state);
 
         $this->input = $input;
         $this->input->on('frame', array($this, 'handleFrameEvent'));
         $this->input->on('error', array($this, 'handleErrorEvent'));
+        $this->input->on('incoming', array($this, 'handleHeartBeat'));
         $this->input->on('close', array($this, 'handleCloseEvent'));
         $this->output = $output;
 
@@ -72,9 +82,11 @@ class Client extends EventEmitter
             $client->setConnectionStatus('not-connected');
         });
 
-        $this->on('connect', function ($client) use ($timer, $deferred) {
+        $this->on('connect', function (Client $client) use ($timer, $deferred) {
             $timer->cancel();
             $deferred->resolve($client);
+            $client->startHeartInTimer();
+            $client->resetHeartOutTimer();
         });
 
         $frame = $this->packageCreator->connect(
@@ -94,6 +106,7 @@ class Client extends EventEmitter
     {
         $frame = $this->packageCreator->send($destination, $body, $headers);
         $this->output->sendFrame($frame);
+        $this->resetHeartOutTimer();
     }
 
     public function subscribe($destination, $callback, array $headers = array())
@@ -268,4 +281,58 @@ class Client extends EventEmitter
         return mt_rand();
     }
 
+    /**
+     * @param HeartBeat $heartBeat
+     * @throws InvalidHeartbeatException
+     * @return $this
+     */
+    public function setHeartBeat(HeartBeat $heartBeat)
+    {
+        if ($this->state->status > State::STATUS_INIT and $this->state->status < State::STATUS_DISCONNECTED) {
+            throw new InvalidHeartbeatException("Heartbeat interval cannot be redefined for active connection.");
+        }
+        $this->state->heartBeat = $heartBeat;
+        return $this;
+    }
+
+    public function handleHeartBeat()
+    {
+        $this->state->received = microtime(true);
+    }
+
+    public function startHeartInTimer()
+    {
+        if ($this->state->heartBeat->getInTimeout() == 0) {
+            $this->emit('no_heartbeat');
+            return;
+        }
+        $client = $this;
+        $this->heartInTimer = $this->loop->addPeriodicTimer(
+            $this->state->heartBeat->getInTimeout(),
+            function () use ($client) {
+                if ($client->state->heartBeat->getInTimeout() < microtime(true) - $this->state->received) {
+                    $client->emit('cardiac_arrest');
+                    $client->heartInTimer->cancel();
+                }
+            }
+        );
+    }
+
+    public function resetHeartOutTimer()
+    {
+        if ($this->heartOutTimer instanceof TimerInterface) {
+            $this->heartOutTimer->cancel();
+        }
+        if ($this->state->heartBeat->getOutTimeout() == 0) {
+            return;
+        }
+
+        $output = $this->output;
+        $this->heartOutTimer = $this->loop->addPeriodicTimer(
+            $this->state->heartBeat->getOutTimeout(),
+            function () use ($output) {
+                $output->emit('data', ["\n"]);
+            }
+        );
+    }
 }

@@ -33,7 +33,7 @@ class Parser
     {
         $frame = new Frame();
 
-        list($head, $body) = explode("\n\n", $data, 2);
+        list($head, $body) = explode("\n\n", ltrim($data), 2);
 
         $lines = explode("\n", ltrim($head, "\n"));
 

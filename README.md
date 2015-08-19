@@ -81,10 +81,40 @@ $client->subscribeWithAck('/topic/foo', 'client', function ($frame, $ackResolver
 });
 ```
 
+## Heart-beating
+
+Heart-beat intervals can be defined before connection :
+
+```php
+$client = $factory->createClient();
+$client->setHeartBeat(new HeartBeat(1,0.5,2));
+$client->on('no_heartbeat', function() use($client, $loop) {
+    error_log("Heart-beating is not supported.");
+});
+$client->on('cardiac_arrest', function() use($client, $loop) {
+    $client->disconnect();
+    $loop->tick();
+    $client->output->close();
+    throw new \RuntimeException("No heart-beats received from the queue broker")
+});
+```
+
+Where we ask the broker to send us heart-beats every second, with another
+half-second threshold, and we promise to send a heart-beat every 2 seconds.
+
+The broker CAN increase intervals, or reset it to 0, if no heart-beating
+supported. In this case `no_heartbeat` event emitted.
+It does not disconnect automatically, as it may be acceptable to
+continue without heart-beating.
+
+If no heart-beats received within interval + threshold, the `cardiac_arrest`
+event emitted. It is strongly recommended to finish all the jobs and
+disconnect, yet it does not disconnect automatically. No heart-beats expected
+after 'cardiac_arrest'.
+
 ## Todo
 
 * Support nul bytes in frame body
-* Heart-beating
 * Consuming ACKs
 * Transactions
 * Streaming frame bodies (using stream API)

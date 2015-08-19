@@ -39,7 +39,7 @@ class ClientTest extends TestCase
 
     /**
      * @test
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      */
     public function connectShouldRejectMissingHostOrVhost()
     {
@@ -671,6 +671,78 @@ class ClientTest extends TestCase
         $e = new \Exception('Input had a problem.');
         $input->emit('error', array($e));
     }
+
+    /** @test */
+    public function settingNoHeartbeatShouldEmitEvent()
+    {
+        $input = $this->createInputStreamMock();
+        $output = $this->getMock('React\Stomp\Io\OutputStreamInterface');
+
+        $client = new Client($this->createLoopMockWithConnectionTimer(), $input, $output, array('vhost' => 'localhost'));
+
+        $noHeartbeatEmitted = false;
+        $client->on('no_heartbeat', function() use (&$noHeartbeatEmitted) {
+            $noHeartbeatEmitted = true;
+        });
+        $client->connect();
+        $input->emit('frame', array(new Frame('CONNECTED')));
+        $this->assertTrue($noHeartbeatEmitted);
+    }
+
+    /** @test */
+    public function receivingNoHeartbeatShouldEmitEvent()
+    {
+        $input = $this->createInputStreamMock();
+        $output = $this->getMock('React\Stomp\Io\OutputStreamInterface');
+
+        $loop = $this->createLoopMock();
+        $timer = $this->getMock('React\EventLoop\Timer\TimerInterface');
+        $timer->expects($this->exactly(2))
+            ->method('cancel');
+
+        $capturedInterval = $capturedCallback = null;
+        $loop->expects($this->any())
+            ->method('addPeriodicTimer')
+            ->willReturnOnConsecutiveCalls(
+                // incoming
+                $this->returnCallback(function ($interval, $callback) use (&$capturedInterval, &$capturedCallback, $timer) {
+                    $capturedInterval = $interval;
+                    $capturedCallback = $callback;
+
+                    return $timer;
+                }),
+                // outgoing
+                $this->returnCallback(function ($interval, $callback) use ($timer) {
+                    return $timer;
+                })
+            );
+
+        $loop->expects($this->once())
+            ->method('addTimer')
+            ->will($this->returnValue($timer));
+
+        $client = new Client($loop, $input, $output, array('vhost' => 'localhost'));
+
+        $noHeartbeatEmitted = false;
+        $cardiacArrestEmitted = false;
+        $client->on('no_heartbeat', function() use (&$noHeartbeatEmitted) {
+            $noHeartbeatEmitted = true;
+        });
+        $client->on('cardiac_arrest', function() use (&$cardiacArrestEmitted) {
+            $cardiacArrestEmitted = true;
+        });
+        $client->connect(30);
+
+        $input->emit('frame', array(new Frame('CONNECTED', ['heart-beat' => '1000,0'])));
+
+        $this->assertFalse($noHeartbeatEmitted);
+        $this->assertEquals(1, $capturedInterval);
+        call_user_func($capturedCallback);
+
+        $this->assertTrue($cardiacArrestEmitted);
+
+    }
+
 
     /** @test */
     public function inputCloseShouldResultInClientClose()
