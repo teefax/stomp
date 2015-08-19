@@ -21,7 +21,7 @@ class IncomingPackageProcessor
     /**
      * Feed frame from the server
      *
-     * @return An array of commands to be executed by the caller.
+     * @return array An array of commands to be executed by the caller.
      */
     public function receiveFrame(Frame $frame)
     {
@@ -36,7 +36,8 @@ class IncomingPackageProcessor
 
             $this->state->doneConnecting(
                 $frame->getHeader('session'),
-                $frame->getHeader('server')
+                $frame->getHeader('server'),
+                $frame->getHeader('heart-beat')
             );
 
             return new ConnectionEstablishedCommand();

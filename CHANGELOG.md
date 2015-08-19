@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+* 0.3.0 (2015-08-20)
+
+  * Add heart-beating support
+
+* 0.2.1 (2015-02-11)
+
+  * Handle closed connections (https://github.com/reactphp/stomp/issues/24)
+
 * 0.2.0 (2014-11-29)
 
   * Bump react deps to 0.4.* (@Easen)

@@ -24,6 +24,13 @@ class OutgoingPackageCreator
                 'passcode'  => (string) $passcode,
             ));
         }
+        if (!$this->state->heartBeat->isDisabled()) {
+            $headers['heart-beat'] = sprintf(
+                '%d,%d',
+                ceil($this->state->heartBeat->getOutgoing() * 1000),
+                ceil($this->state->heartBeat->getIncoming() * 1000)
+            );
+        }
         return new Frame('CONNECT', $headers);
     }
 

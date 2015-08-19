@@ -4,6 +4,7 @@ namespace React\Tests\Stomp\Client;
 
 use React\Stomp\Client\OutgoingPackageCreator;
 use React\Stomp\Client\State;
+use React\Stomp\Client\HeartBeat;
 use React\Stomp\Protocol\Frame;
 use React\Tests\Stomp\Constraint\FrameEquals;
 
@@ -37,6 +38,28 @@ class OutgoingPackageCreatorTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFrameEquals($expectedFrame, $frame);
     }
+
+    /** @test */
+    public function connectShouldSetHeartbeatHeadersIfGiven()
+    {
+        $expectedFrame = new Frame('CONNECT', array(
+            'accept-version' => '1.1',
+            'host' => 'stomp.github.org',
+            'heart-beat' => '3000,2000'
+        ));
+
+        $state = new State();
+        $state->heartBeat = new HeartBeat(2, 1, 3);
+        $packageCreator = new OutgoingPackageCreator($state);
+
+        $this->assertSame(State::STATUS_INIT, $state->status);
+
+        $frame = $packageCreator->connect('stomp.github.org');
+
+        $this->assertFrameEquals($expectedFrame, $frame);
+        $this->assertSame(State::STATUS_CONNECTING, $state->status);
+    }
+
 
     /** @test */
     public function sendShouldEmitSendFrame()
