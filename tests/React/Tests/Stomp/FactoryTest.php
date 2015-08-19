@@ -13,7 +13,7 @@ class FactoryTest extends TestCase
 
         $loop = $this->getMock('React\EventLoop\LoopInterface');
         $factory = new Factory($loop);
-        $conn = $factory->createConnection(array('host' => 'localhost', 'port' => 37234));
+        $conn = $factory->createConnection(array('protocol'  => 'tcp', 'host' => 'localhost', 'port' => 37234));
 
         $this->assertInstanceOf('React\Socket\Connection', $conn);
     }
@@ -25,7 +25,7 @@ class FactoryTest extends TestCase
         $factory = new Factory($loop);
 
         try {
-            $factory->createConnection(array('host' => 'localhost', 'port' => 37235));
+            $factory->createConnection(array('protocol'  => 'tcp', 'host' => 'localhost', 'port' => 37235));
             $this->fail('This should have raised an exception');
         } catch (ConnectionException $e) {
 
