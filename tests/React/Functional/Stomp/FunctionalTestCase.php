@@ -3,6 +3,8 @@
 namespace React\Functional\Stomp;
 
 use React\EventLoop\Factory as LoopFactory;
+use React\EventLoop\LoopInterface;
+use React\Socket\Server;
 use React\Stomp\Factory;
 
 abstract class FunctionalTestCase extends \PHPUnit_Framework_TestCase
@@ -31,5 +33,25 @@ abstract class FunctionalTestCase extends \PHPUnit_Framework_TestCase
         $options = array_merge($default, $options);
 
         return $factory->createClient($options);
+    }
+
+    /**
+     * @param LoopInterface $loop
+     * @param int $port
+     * @param array $callbacks stack of callbacks
+     * @return Server
+     */
+    protected function getMqBrokerMock($loop, $port, array &$callbacks)
+    {
+        $socket = new Server($loop);
+        $socket->on('connection', function ($conn) use (&$callbacks){
+            $conn->write(call_user_func(array_shift($callbacks), $conn, 'connection'));
+
+            $conn->on('data', function ($data) use ($conn, &$callbacks) {
+                $conn->write(call_user_func(array_shift($callbacks), $conn, 'data', $data));
+            });
+        });
+        $socket->listen($port);
+        return $socket;
     }
 }

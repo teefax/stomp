@@ -15,10 +15,15 @@ class State
     public $server;
     public $subscriptions;
     public $receipt;
+    /** @var  HeartBeat */
+    public $heartBeat;
+    /** @var \DateTime */
+    public $received;
 
     public function __construct()
     {
         $this->subscriptions = new SubscriptionBag();
+        $this->heartBeat = new HeartBeat();
     }
 
     public function startConnecting()
@@ -31,11 +36,12 @@ class State
         return self::STATUS_CONNECTING === $this->status;
     }
 
-    public function doneConnecting($session, $server)
+    public function doneConnecting($session, $server, $heartBeat)
     {
         $this->status   = self::STATUS_CONNECTED;
         $this->session  = $session;
         $this->server   = $server;
+        $this->heartBeat->updateFromHeader($heartBeat);
     }
 
     public function startDisconnecting($receipt)

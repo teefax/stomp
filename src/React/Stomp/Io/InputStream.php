@@ -25,6 +25,7 @@ class InputStream extends WritableStream implements InputStreamInterface
     public function write($data)
     {
         $data = $this->buffer.$data;
+        $this->emit('incoming');
         list($frames, $data) = $this->parser->parse($data);
         $this->buffer = $data;
 
