@@ -75,10 +75,13 @@ class Client extends EventEmitter
         $deferred = $this->connectDeferred = new Deferred();
         $client = $this;
 
-        $timer = $this->loop->addTimer($timeout, function () use ($client, $deferred) {
-            $deferred->reject(new ConnectionException('Connection timeout'));
+        // prepare to die quickly and avoid file IO on timeout
+        $connectionTimeout = new ConnectionException('Connection timeout');
+
+        $timer = $this->loop->addTimer($timeout, function () use ($client, $deferred, $connectionTimeout) {
             $client->resetConnectDeferred();
             $client->setConnectionStatus('not-connected');
+            $deferred->reject($connectionTimeout);
         });
 
         $this->on('connect', function (Client $client) use ($timer, $deferred) {

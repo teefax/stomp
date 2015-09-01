@@ -13,7 +13,12 @@ class FactoryTest extends TestCase
 
         $loop = $this->getMock('React\EventLoop\LoopInterface');
         $factory = new Factory($loop);
-        $conn = $factory->createConnection(array('protocol'  => 'tcp', 'host' => 'localhost', 'port' => 37234));
+        $conn = $factory->createConnection(array(
+            'protocol'  => 'tcp',
+            'host' => 'localhost',
+            'port' => 37234,
+            'timeout' => 1
+        ));
 
         $this->assertInstanceOf('React\Socket\Connection', $conn);
     }

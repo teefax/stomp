@@ -57,6 +57,8 @@ $loop->run();
 * `vhost`: Virtual host, defaults to `/`.
 * `login`: Login user name, defaults to `guest`.
 * `passcode`: Login passcode, defaults to `guest`.
+* `protocol`: tcp or tls, defaults to `tcp`.
+* `timeout`: socket timeout, defaults to 0.
 
 ## Acknowledgement
 

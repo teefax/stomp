@@ -21,7 +21,8 @@ class Factory
         'vhost'     => '/',
         'login'     => 'guest',
         'passcode'  => 'guest',
-        'protocol'  => 'tcp'
+        'protocol'  => 'tcp',
+        'timeout'   => 0
     );
 
     private $loop;
@@ -62,6 +63,12 @@ class Factory
         if (false === $fd = @stream_socket_client($address, $errno, $errstr)) {
             $message = "Could not bind to $address: $errstr";
             throw new ConnectionException($message, $errno);
+        }
+
+        // Normally all reads are non-blocking, and stream_socket_recvfrom ignores it at all
+        // so it should have no effect.
+        if ((int)$options['timeout'] && !stream_set_timeout($fd, (int)$options['timeout'] )) {
+                throw new ConnectionException('Failed to set timeout ' . $options['timeout'] . 'seconds.');
         }
 
         $conn = new Connection($fd, $this->loop);
