@@ -676,7 +676,7 @@ class ClientTest extends TestCase
     public function settingNoHeartbeatShouldEmitEvent()
     {
         $input = $this->createInputStreamMock();
-        $output = $this->getMock('React\Stomp\Io\OutputStreamInterface');
+        $output = $this->getMockBuilder('React\Stomp\Io\OutputStreamInterface')->getMock();
 
         $client = new Client($this->createLoopMockWithConnectionTimer(), $input, $output, array('vhost' => 'localhost'));
 
@@ -693,10 +693,10 @@ class ClientTest extends TestCase
     public function receivingNoHeartbeatShouldEmitEvent()
     {
         $input = $this->createInputStreamMock();
-        $output = $this->getMock('React\Stomp\Io\OutputStreamInterface');
+        $output = $this->getMockBuilder('React\Stomp\Io\OutputStreamInterface')->getMock();
 
         $loop = $this->createLoopMock();
-        $timer = $this->getMock('React\EventLoop\Timer\TimerInterface');
+        $timer = $this->getMockBuilder('React\EventLoop\Timer\TimerInterface')->getMock();
         $timer->expects($this->exactly(2))
             ->method('cancel');
 

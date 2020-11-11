@@ -2,9 +2,10 @@
 
 namespace React\Tests\Stomp\Client;
 
+use PHPUnit\Framework\TestCase;
 use React\Stomp\Client\HeartBeat;
 
-class HeartBeatTest extends \PHPUnit_Framework_TestCase
+class HeartBeatTest extends TestCase
 {
 
     /**
@@ -26,4 +27,4 @@ class HeartBeatTest extends \PHPUnit_Framework_TestCase
             [null, 0]
         ];
     }
-} 
+}
