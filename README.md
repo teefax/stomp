@@ -96,7 +96,7 @@ $client->on('cardiac_arrest', function() use($client, $loop) {
     $client->disconnect();
     $loop->tick();
     $client->output->close();
-    throw new \RuntimeException("No heart-beats received from the queue broker")
+    throw new \RuntimeException("No heart-beats received from the queue broker");
 });
 ```
 
