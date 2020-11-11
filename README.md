@@ -57,6 +57,7 @@ $loop->run();
 * `vhost`: Virtual host, defaults to `/`.
 * `login`: Login user name, defaults to `guest`.
 * `passcode`: Login passcode, defaults to `guest`.
+* `protocol`: Protocol to connect with, defaults to `tcp` (use `tls` for TLS-enabled connections).
 
 ## Acknowledgement
 
@@ -124,6 +125,10 @@ after 'cardiac_arrest'.
 To run the test suite, you need PHPUnit.
 
     $ phpunit
+
+Or, to run the functional tests against a local message queue:
+
+    $ STOMP_PROVIDER=rabbitmq phpunit -c phpunit-functional.xml.dist
 
 ## License
 
